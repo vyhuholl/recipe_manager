@@ -1,8 +1,4 @@
-# recipe-search Specification
-
-## Purpose
-TBD - created by archiving change add-recipe-search. Update Purpose after archive.
-## Requirements
+## MODIFIED Requirements
 ### Requirement: Recipe Search Interface
 The system SHALL provide a search interface integrated into the recipe list view that allows users to search for recipes using text queries. The search functionality filters the recipe list in real-time.
 

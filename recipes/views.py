@@ -1,29 +1,29 @@
-from django.views.generic import ListView
+from django.views.generic import ListView, DetailView
 from django.db.models import Q
 from .models import Recipe
 
 
-class RecipeSearchView(ListView):
-    """View for searching recipes by name, description, or ingredient names."""
+class RecipeListView(ListView):
+    """View for listing all recipes with optional search filtering."""
     model = Recipe
-    template_name = 'recipes/search.html'
+    template_name = 'recipes/list.html'
     context_object_name = 'recipes'
     paginate_by = None
 
     def get_queryset(self):
-        """Filter recipes based on search query."""
+        """Filter recipes based on search query, or return all if no query."""
         query = self.request.GET.get('q', '').strip()
         
-        if not query:
-            return Recipe.objects.none()
+        queryset = Recipe.objects.all()
         
-        # Search across recipe name, description, and ingredient names
-        # Case-insensitive search using icontains
-        queryset = Recipe.objects.filter(
-            Q(name__icontains=query) |
-            Q(description__icontains=query) |
-            Q(ingredients__name__icontains=query)
-        ).distinct()
+        if query:
+            # Search across recipe name, description, and ingredient names
+            # Case-insensitive search using icontains
+            queryset = queryset.filter(
+                Q(name__icontains=query) |
+                Q(description__icontains=query) |
+                Q(ingredients__name__icontains=query)
+            ).distinct()
         
         return queryset
 
@@ -33,4 +33,12 @@ class RecipeSearchView(ListView):
         context['query'] = self.request.GET.get('q', '').strip()
         context['has_query'] = bool(context['query'])
         return context
+
+
+class RecipeDetailView(DetailView):
+    """View for displaying individual recipe details."""
+    model = Recipe
+    template_name = 'recipes/detail.html'
+    context_object_name = 'recipe'
+    pk_url_kwarg = 'id'
 

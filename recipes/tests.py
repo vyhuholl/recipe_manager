@@ -334,8 +334,8 @@ class RecipeIngredientRelationshipTest(TestCase):
         self.assertEqual(self.recipe.ingredients.count(), 0)
 
 
-class RecipeSearchViewTest(TestCase):
-    """Test cases for RecipeSearchView."""
+class RecipeListViewTest(TestCase):
+    """Test cases for RecipeListView."""
 
     def setUp(self):
         """Set up test data."""
@@ -367,87 +367,202 @@ class RecipeSearchViewTest(TestCase):
             name="flour"
         )
 
+    def test_list_all_recipes(self):
+        """Test that list view displays all recipes when no query is provided."""
+        response = self.client.get('/recipes/')
+        self.assertEqual(response.status_code, 200)
+        recipes = response.context['recipes']
+        self.assertEqual(recipes.count(), 3)
+        self.assertIn(self.recipe1, recipes)
+        self.assertIn(self.recipe2, recipes)
+        self.assertIn(self.recipe3, recipes)
+
     def test_search_by_recipe_name(self):
         """Test searching for recipes by name."""
-        response = self.client.get('/recipes/search/', {'q': 'chocolate'})
+        response = self.client.get('/recipes/', {'q': 'chocolate'})
         self.assertEqual(response.status_code, 200)
-        self.assertIn(self.recipe1, response.context['recipes'])
-        self.assertNotIn(self.recipe2, response.context['recipes'])
-        self.assertNotIn(self.recipe3, response.context['recipes'])
+        recipes = response.context['recipes']
+        self.assertIn(self.recipe1, recipes)
+        self.assertNotIn(self.recipe2, recipes)
+        self.assertNotIn(self.recipe3, recipes)
 
     def test_search_by_description(self):
         """Test searching for recipes by description."""
-        response = self.client.get('/recipes/search/', {'q': 'quick meal'})
+        response = self.client.get('/recipes/', {'q': 'quick meal'})
         self.assertEqual(response.status_code, 200)
-        self.assertIn(self.recipe2, response.context['recipes'])
-        self.assertNotIn(self.recipe1, response.context['recipes'])
-        self.assertNotIn(self.recipe3, response.context['recipes'])
+        recipes = response.context['recipes']
+        self.assertIn(self.recipe2, recipes)
+        self.assertNotIn(self.recipe1, recipes)
+        self.assertNotIn(self.recipe3, recipes)
 
     def test_search_by_ingredient_name(self):
         """Test searching for recipes by ingredient name."""
-        response = self.client.get('/recipes/search/', {'q': 'flour'})
+        response = self.client.get('/recipes/', {'q': 'flour'})
         self.assertEqual(response.status_code, 200)
-        self.assertIn(self.recipe3, response.context['recipes'])
-        self.assertNotIn(self.recipe1, response.context['recipes'])
-        self.assertNotIn(self.recipe2, response.context['recipes'])
+        recipes = response.context['recipes']
+        self.assertIn(self.recipe3, recipes)
+        self.assertNotIn(self.recipe1, recipes)
+        self.assertNotIn(self.recipe2, recipes)
 
     def test_search_across_multiple_fields(self):
         """Test searching across name, description, and ingredients."""
-        response = self.client.get('/recipes/search/', {'q': 'chicken'})
+        response = self.client.get('/recipes/', {'q': 'chicken'})
         self.assertEqual(response.status_code, 200)
+        recipes = response.context['recipes']
         # Should match recipe2 by name and ingredient
-        self.assertIn(self.recipe2, response.context['recipes'])
-        self.assertNotIn(self.recipe1, response.context['recipes'])
-        self.assertNotIn(self.recipe3, response.context['recipes'])
+        self.assertIn(self.recipe2, recipes)
+        self.assertNotIn(self.recipe1, recipes)
+        self.assertNotIn(self.recipe3, recipes)
 
     def test_case_insensitive_search(self):
         """Test that search is case-insensitive."""
-        response = self.client.get('/recipes/search/', {'q': 'CHOCOLATE'})
+        response = self.client.get('/recipes/', {'q': 'CHOCOLATE'})
         self.assertEqual(response.status_code, 200)
-        self.assertIn(self.recipe1, response.context['recipes'])
+        recipes = response.context['recipes']
+        self.assertIn(self.recipe1, recipes)
         
-        response = self.client.get('/recipes/search/', {'q': 'ChIcKeN'})
+        response = self.client.get('/recipes/', {'q': 'ChIcKeN'})
         self.assertEqual(response.status_code, 200)
-        self.assertIn(self.recipe2, response.context['recipes'])
+        recipes = response.context['recipes']
+        self.assertIn(self.recipe2, recipes)
 
     def test_empty_search_query(self):
-        """Test handling of empty search query."""
-        response = self.client.get('/recipes/search/', {'q': ''})
+        """Test handling of empty search query shows all recipes."""
+        response = self.client.get('/recipes/', {'q': ''})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context['recipes'].count(), 0)
+        recipes = response.context['recipes']
+        self.assertEqual(recipes.count(), 3)
         self.assertFalse(response.context['has_query'])
 
     def test_empty_search_query_with_whitespace(self):
-        """Test handling of search query with only whitespace."""
-        response = self.client.get('/recipes/search/', {'q': '   '})
+        """Test handling of search query with only whitespace shows all recipes."""
+        response = self.client.get('/recipes/', {'q': '   '})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context['recipes'].count(), 0)
+        recipes = response.context['recipes']
+        self.assertEqual(recipes.count(), 3)
         self.assertFalse(response.context['has_query'])
 
     def test_no_search_results(self):
         """Test search with no matching results."""
-        response = self.client.get('/recipes/search/', {'q': 'nonexistent'})
+        response = self.client.get('/recipes/', {'q': 'nonexistent'})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context['recipes'].count(), 0)
+        recipes = response.context['recipes']
+        self.assertEqual(recipes.count(), 0)
         self.assertTrue(response.context['has_query'])
 
-    def test_search_template_rendering(self):
-        """Test that search template renders correctly."""
-        response = self.client.get('/recipes/search/', {'q': 'chocolate'})
+    def test_list_template_rendering(self):
+        """Test that list template renders correctly."""
+        response = self.client.get('/recipes/')
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Recipe Search')
+        self.assertContains(response, 'Recipe Collection')
+        self.assertContains(response, self.recipe1.name)
+
+    def test_list_template_with_search(self):
+        """Test template rendering with search query."""
+        response = self.client.get('/recipes/', {'q': 'chocolate'})
+        self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'chocolate')
         self.assertContains(response, self.recipe1.name)
 
-    def test_search_template_with_no_query(self):
-        """Test template rendering when no query is provided."""
-        response = self.client.get('/recipes/search/')
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Please enter a search term')
-
-    def test_search_template_with_no_results(self):
+    def test_list_template_with_no_results(self):
         """Test template rendering when no results are found."""
-        response = self.client.get('/recipes/search/', {'q': 'nonexistent'})
+        response = self.client.get('/recipes/', {'q': 'nonexistent'})
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'No recipes found matching')
+        self.assertContains(response, 'No recipes found')
+
+
+class RecipeDetailViewTest(TestCase):
+    """Test cases for RecipeDetailView."""
+
+    def setUp(self):
+        """Set up test data."""
+        self.tag1 = Tag.objects.create(name="dessert")
+        self.tag2 = Tag.objects.create(name="vegetarian")
+        self.recipe = Recipe.objects.create(
+            name="Chocolate Chip Cookies",
+            description="Delicious homemade cookies",
+            servings=24,
+            prep_time=15,
+            cook_time=12,
+            instructions="Mix ingredients and bake at 350F for 12 minutes"
+        )
+        self.recipe.tags.add(self.tag1, self.tag2)
+        Ingredient.objects.create(
+            recipe=self.recipe,
+            quantity=2.5,
+            unit="cups",
+            name="flour"
+        )
+        Ingredient.objects.create(
+            recipe=self.recipe,
+            quantity=1,
+            unit="cup",
+            name="sugar"
+        )
+        Ingredient.objects.create(
+            recipe=self.recipe,
+            name="chocolate chips"
+        )
+
+    def test_detail_view_displays_recipe(self):
+        """Test that detail view displays recipe information."""
+        response = self.client.get(f'/recipes/{self.recipe.id}/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['recipe'], self.recipe)
+        self.assertContains(response, self.recipe.name)
+        self.assertContains(response, self.recipe.description)
+
+    def test_detail_view_displays_ingredients(self):
+        """Test that detail view displays all ingredients."""
+        response = self.client.get(f'/recipes/{self.recipe.id}/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'flour')
+        self.assertContains(response, 'sugar')
+        self.assertContains(response, 'chocolate chips')
+        self.assertContains(response, '2.5')
+        self.assertContains(response, 'cups')
+
+    def test_detail_view_displays_instructions(self):
+        """Test that detail view displays instructions."""
+        response = self.client.get(f'/recipes/{self.recipe.id}/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.recipe.instructions)
+
+    def test_detail_view_displays_metadata(self):
+        """Test that detail view displays recipe metadata."""
+        response = self.client.get(f'/recipes/{self.recipe.id}/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, str(self.recipe.servings))
+        self.assertContains(response, str(self.recipe.prep_time))
+        self.assertContains(response, str(self.recipe.cook_time))
+
+    def test_detail_view_displays_tags(self):
+        """Test that detail view displays recipe tags."""
+        response = self.client.get(f'/recipes/{self.recipe.id}/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.tag1.name)
+        self.assertContains(response, self.tag2.name)
+
+    def test_detail_view_404_for_nonexistent_recipe(self):
+        """Test that detail view returns 404 for nonexistent recipe."""
+        response = self.client.get('/recipes/99999/')
+        self.assertEqual(response.status_code, 404)
+
+    def test_detail_view_template_rendering(self):
+        """Test that detail template renders correctly."""
+        response = self.client.get(f'/recipes/{self.recipe.id}/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Back to Recipes')
+        self.assertContains(response, self.recipe.name)
+
+    def test_detail_view_with_minimal_recipe(self):
+        """Test detail view with recipe that has minimal fields."""
+        minimal_recipe = Recipe.objects.create(
+            name="Simple Recipe",
+            instructions="Just do it"
+        )
+        response = self.client.get(f'/recipes/{minimal_recipe.id}/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, minimal_recipe.name)
+        self.assertContains(response, minimal_recipe.instructions)
 
